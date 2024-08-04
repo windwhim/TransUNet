@@ -106,7 +106,7 @@ class GlassesB2(Dataset):
             image = self.transform(image)
         else:
             image = self.base_transform(image)
-        label = self.base_transform(label)
+        label = self.base_transform(label)[0]
 
         sample = {
             "image": image,

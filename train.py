@@ -7,13 +7,13 @@ import torch
 import torch.backends.cudnn as cudnn
 from networks.vit_seg_modeling import VisionTransformer as ViT_seg
 from networks.vit_seg_modeling import CONFIGS as CONFIGS_ViT_seg
-from trainer import trainer_synapse
+from trainer import trainer_glasses
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--root_path",
     type=str,
-    default="D:/Code/DL/data/glassesB2/npz/frame/train/",
+    default="D:/Code/DL/data/glassesB2/images/frame/train/",
     help="root dir for data",
 )
 parser.add_argument("--dataset", type=str, default="B2Frame", help="experiment_name")
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     dataset_name = args.dataset
     dataset_config = {
         "B2Frame": {
-            "root_path": "D:/Code/DL/data/glassesB2/npz/frame/train",
+            "root_path": "D:/Code/DL/data/glassesB2/images/frame/train",
             "list_dir": "./lists/list_B2Frame/",
             "num_classes": 2,
         },
@@ -124,6 +124,6 @@ if __name__ == "__main__":
     net.load_from(weights=np.load(config_vit.pretrained_path, allow_pickle=True))
 
     trainer = {
-        "B2Frame": trainer_synapse,
+        "B2Frame": trainer_glasses,
     }
     trainer[dataset_name](args, net, snapshot_path)

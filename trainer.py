@@ -16,10 +16,12 @@ from utils import DiceLoss
 from torchvision import transforms
 
 
-def trainer_synapse(args, model, snapshot_path):
+def trainer_glasses(args, model, snapshot_path):
     import sys
 
     sys.path.append("d:\\Code\\DL\\TransUNet\\datasets")  # 添加模块路径
+    # from dataset_glassesB2 import GlassesB2_dataset, RandomGenerator
+
     from glassesB2 import GlassesB2
 
     logging.basicConfig(
