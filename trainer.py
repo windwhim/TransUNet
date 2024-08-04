@@ -20,7 +20,7 @@ def trainer_synapse(args, model, snapshot_path):
     import sys
 
     sys.path.append("d:\\Code\\DL\\TransUNet\\datasets")  # 添加模块路径
-    from dataset_glassesB2 import GlassesB2_dataset, RandomGenerator
+    from glassesB2 import GlassesB2
 
     logging.basicConfig(
         filename=snapshot_path + "/log.txt",
@@ -33,14 +33,30 @@ def trainer_synapse(args, model, snapshot_path):
     base_lr = args.base_lr
     num_classes = args.num_classes
     batch_size = args.batch_size * args.n_gpu
+
+    data_transform = transforms.Compose(
+        [
+            transforms.Resize([args.img_size, args.img_size]),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ],
+    )
     # max_iterations = args.max_iterations
-    db_train = GlassesB2_dataset(
+    # db_train = GlassesB2_dataset(
+    #     base_dir=args.root_path,
+    #     list_dir=args.list_dir,
+    #     split="train",
+    #     transform=transforms.Compose(
+    #         [RandomGenerator(output_size=[args.img_size, args.img_size])]
+    #     ),
+    # )
+    # MODIFY: define glasses dataset
+    db_train = GlassesB2(
         base_dir=args.root_path,
         list_dir=args.list_dir,
         split="train",
-        transform=transforms.Compose(
-            [RandomGenerator(output_size=[args.img_size, args.img_size])]
-        ),
+        transform=data_transform,
+        output_size=(args.img_size, args.img_size),
     )
     print("The length of train set is: {}".format(len(db_train)))
 

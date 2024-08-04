@@ -1,12 +1,12 @@
 import os
 import random
-import h5py
 import numpy as np
 import torch
 from scipy import ndimage
 from scipy.ndimage import zoom
 from torch.utils.data import Dataset
-import cv2
+from PIL import Image
+from torchvision import transforms
 
 
 def random_rot_flip(image, label):
@@ -16,6 +16,12 @@ def random_rot_flip(image, label):
     axis = np.random.randint(0, 2)
     image = np.flip(image, axis=axis).copy()
     label = np.flip(label, axis=axis).copy()
+    return image, label
+
+
+def random_flip(image, label):
+    image = np.flip(image, axis=1).copy()
+    label = np.flip(label, axis=1).copy()
     return image, label
 
 
@@ -33,8 +39,8 @@ class RandomGenerator(object):
     def __call__(self, sample):
         image, label = sample["image"], sample["label"]
 
-        # if random.random() > 0.5:
-        #     image, label = random_rot_flip(image, label)
+        if random.random() > 0.5:
+            image, label = random_flip(image, label)
         if random.random() > 0.5:
             image, label = random_rotate(image, label)
         x, y, _ = image.shape
@@ -56,38 +62,56 @@ class RandomGenerator(object):
         return sample
 
 
-class GlassesB2_dataset(Dataset):
-    def __init__(self, base_dir, list_dir, split, transform=None):
+class GlassesB2(Dataset):
+    def __init__(
+        self, base_dir, list_dir, split, transform=None, output_size=(224, 224)
+    ):
+        self.output_size = output_size
         self.transform = transform  # using transform in torch!
         self.split = split
         self.sample_list = open(os.path.join(list_dir, self.split + ".txt")).readlines()
         self.data_dir = base_dir
 
+        self.base_transform = transforms.Compose(
+            [
+                transforms.Resize(self.output_size),
+                transforms.ToTensor(),
+            ]
+        )
+
     def __len__(self):
         return len(self.sample_list)
 
     def __getitem__(self, idx):
+        # path
+        slice_name = self.sample_list[idx].strip("\n")
         if self.split == "train":
-            slice_name = self.sample_list[idx].strip("\n")
-            data_path = os.path.join(self.data_dir, slice_name + ".npz")
-            data = np.load(data_path, allow_pickle=True)
-            image, label = data["image"], data["label"]
-            print(type(image))
-            print(type(label))
-            # image = image.permute(2, 0, 1)
-        else:
-            slice_name = self.sample_list[idx].strip("\n")
-            data_path = os.path.join(
-                self.data_dir.replace("split", "val"), slice_name + ".npz"
+            image_path = os.path.join(self.data_dir, slice_name + ".png")
+            label_path = os.path.join(
+                self.data_dir.replace("images", "labels"), slice_name + ".png"
             )
-            data = np.load(data_path)
-            image, label = data["image"], data["label"]
-            image = torch.from_numpy(image.astype(np.float32))
-            image = image.permute(2, 0, 1)
-            label = torch.from_numpy(label.astype(np.float32))
-
-        sample = {"image": image, "label": label}
+        else:
+            image_path = os.path.join(
+                self.data_dir.replace("train", "val"), slice_name + ".png"
+            )
+            label_path = os.path.join(
+                self.data_dir.replace("images", "labels").replace("train", "val"),
+                slice_name + ".png",
+            )
+        # load
+        image = Image.open(image_path)
+        label = Image.open(label_path).convert("L")
+        # transform
         if self.transform:
-            sample = self.transform(sample)
-        sample["case_name"] = self.sample_list[idx].strip("\n")
+            image = self.transform(image)
+        else:
+            image = self.base_transform(image)
+        label = self.base_transform(label)
+
+        sample = {
+            "image": image,
+            "label": label,
+            "case_name": slice_name,
+        }
+
         return sample
