@@ -20,7 +20,7 @@ def trainer_glasses(args, model, snapshot_path):
     import sys
 
     sys.path.append("d:\\Code\\DL\\TransUNet\\datasets")  # 添加模块路径
-    # from dataset_glassesB2 import GlassesB2_dataset, RandomGenerator
+    from dataset_glassesB2 import GlassesB2_dataset, RandomGenerator
 
     from glassesB2 import GlassesB2
 
@@ -40,7 +40,7 @@ def trainer_glasses(args, model, snapshot_path):
         [
             transforms.Resize([args.img_size, args.img_size]),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            transforms.Normalize([0.801, 0.778, 0.781], [0.319, 0.337, 0.337]),
         ],
     )
     # max_iterations = args.max_iterations
@@ -57,7 +57,9 @@ def trainer_glasses(args, model, snapshot_path):
         base_dir=args.root_path,
         list_dir=args.list_dir,
         split="train",
-        transform=data_transform,
+        transform=transforms.Compose(
+            [RandomGenerator(output_size=[args.img_size, args.img_size])]
+        ),
         output_size=(args.img_size, args.img_size),
     )
     print("The length of train set is: {}".format(len(db_train)))
@@ -67,8 +69,8 @@ def trainer_glasses(args, model, snapshot_path):
 
     trainloader = DataLoader(
         db_train,
-        batch_size=batch_size,
-        shuffle=True,
+        batch_size=1,
+        shuffle=False,
         num_workers=0,
         pin_memory=True,
         worker_init_fn=worker_init_fn,
@@ -113,10 +115,11 @@ def trainer_glasses(args, model, snapshot_path):
             writer.add_scalar("info/lr", lr_, iter_num)
             writer.add_scalar("info/total_loss", loss, iter_num)
             writer.add_scalar("info/loss_ce", loss_ce, iter_num)
+            writer.add_scalar("info/loss_dice", loss_dice, iter_num)
 
             logging.info(
-                "iteration %d : loss : %f, loss_ce: %f"
-                % (iter_num, loss.item(), loss_ce.item())
+                "iteration %d : loss : %f, loss_ce: %f, loss_dice: %f"
+                % (iter_num, loss.item(), loss_ce.item(), loss_dice.item())
             )
 
             if iter_num % 20 == 0:
@@ -130,8 +133,8 @@ def trainer_glasses(args, model, snapshot_path):
                 labs = label_batch[1, ...].unsqueeze(0) * 50
                 writer.add_image("train/GroundTruth", labs, iter_num)
 
-        save_interval = 50  # int(max_epoch/6)
-        if epoch_num > int(max_epoch / 2) and (epoch_num + 1) % save_interval == 0:
+        save_interval = 3  # int(max_epoch/6)
+        if (epoch_num + 1) % save_interval == 0:
             save_mode_path = os.path.join(
                 snapshot_path, "epoch_" + str(epoch_num) + ".pth"
             )

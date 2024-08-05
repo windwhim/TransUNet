@@ -40,8 +40,6 @@ class RandomGenerator(object):
         image, label = sample["image"], sample["label"]
 
         if random.random() > 0.5:
-            image, label = random_flip(image, label)
-        if random.random() > 0.5:
             image, label = random_rotate(image, label)
         x, y, _ = image.shape
 
@@ -72,13 +70,6 @@ class GlassesB2(Dataset):
         self.sample_list = open(os.path.join(list_dir, self.split + ".txt")).readlines()
         self.data_dir = base_dir
 
-        self.base_transform = transforms.Compose(
-            [
-                transforms.Resize(self.output_size),
-                transforms.ToTensor(),
-            ]
-        )
-
     def __len__(self):
         return len(self.sample_list)
 
@@ -101,17 +92,13 @@ class GlassesB2(Dataset):
         # load
         image = Image.open(image_path)
         label = Image.open(label_path).convert("L")
-        # transform
-        if self.transform:
-            image = self.transform(image)
-        else:
-            image = self.base_transform(image)
-        label = self.base_transform(label)[0]
+        image = np.array(image)
+        label = np.array(label)
 
-        sample = {
-            "image": image,
-            "label": label,
-            "case_name": slice_name,
-        }
+        sample = {"image": image, "label": label}
+        if self.transform:
+            sample = self.transform(sample)
+
+        sample["case_name"] = (slice_name,)
 
         return sample

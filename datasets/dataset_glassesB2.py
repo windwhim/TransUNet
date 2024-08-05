@@ -7,6 +7,7 @@ from scipy import ndimage
 from scipy.ndimage import zoom
 from torch.utils.data import Dataset
 import cv2
+from torchvision import transforms
 
 
 def random_rot_flip(image, label):
@@ -35,7 +36,7 @@ class RandomGenerator(object):
 
         # if random.random() > 0.5:
         #     image, label = random_rot_flip(image, label)
-        if random.random() > 0.5:
+        if random.random() > 2:
             image, label = random_rotate(image, label)
         x, y, _ = image.shape
 
@@ -72,8 +73,6 @@ class GlassesB2_dataset(Dataset):
             data_path = os.path.join(self.data_dir, slice_name + ".npz")
             data = np.load(data_path, allow_pickle=True)
             image, label = data["image"], data["label"]
-            print(type(image))
-            print(type(label))
             # image = image.permute(2, 0, 1)
         else:
             slice_name = self.sample_list[idx].strip("\n")
@@ -85,9 +84,13 @@ class GlassesB2_dataset(Dataset):
             image = torch.from_numpy(image.astype(np.float32))
             image = image.permute(2, 0, 1)
             label = torch.from_numpy(label.astype(np.float32))
+        # image = image.transpose(2, 0, 1)
 
         sample = {"image": image, "label": label}
         if self.transform:
             sample = self.transform(sample)
         sample["case_name"] = self.sample_list[idx].strip("\n")
+
+        # sample["image"] = np.array(sample["image"])
+        # sample["label"] = np.array(sample["label"])
         return sample
